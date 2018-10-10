@@ -7,11 +7,12 @@
 #include <vector>
 
 #include "bigram_decoder_utils.h"
+#include "decoder_utils.h"
 
 BigramPathTrie::BigramPathTrie() {
-  log_prob_b_prev_2 = -NUM_FLT_INF;
-  log_prob_nb_prev_2 = -NUM_FLT_INF;
-  log_prob_nb_2_prev_2 = -NUM_FLT_INF;
+  //log_prob_b_prev_2 = -NUM_FLT_INF;
+  //log_prob_nb_prev_2 = -NUM_FLT_INF;
+  //log_prob_nb_2_prev_2 = -NUM_FLT_INF;
 
   log_prob_b_prev = -NUM_FLT_INF;
   log_prob_nb_prev = -NUM_FLT_INF;
@@ -51,9 +52,9 @@ BigramPathTrie* BigramPathTrie::get_path_trie(int new_char, int new_timestep, bo
   if (child != children_.end()) {
     if (!child->second->exists_) {
       child->second->exists_ = true;
-      child->second->log_prob_b_prev_2 = -NUM_FLT_INF;
-      child->second->log_prob_nb_prev_2 = -NUM_FLT_INF;
-      child->second->log_prob_nb_2_prev_2 = -NUM_FLT_INF;
+      //child->second->log_prob_b_prev_2 = -NUM_FLT_INF;
+      //child->second->log_prob_nb_prev_2 = -NUM_FLT_INF;
+      //child->second->log_prob_nb_2_prev_2 = -NUM_FLT_INF;
       child->second->log_prob_b_prev = -NUM_FLT_INF;
       child->second->log_prob_nb_prev = -NUM_FLT_INF;
       child->second->log_prob_nb_2_prev = -NUM_FLT_INF;
@@ -132,9 +133,9 @@ BigramPathTrie* BigramPathTrie::get_path_vec(std::vector<int>& output,
 
 void BigramPathTrie::iterate_to_vec(std::vector<BigramPathTrie*>& output) {
   if (exists_) {
-    log_prob_b_prev_2 = log_prob_b_prev;
-    log_prob_nb_prev_2 = log_prob_nb_prev;
-    log_prob_nb_2_prev_2 = log_prob_nb_2_prev;
+    //log_prob_b_prev_2 = log_prob_b_prev;
+    //log_prob_nb_prev_2 = log_prob_nb_prev;
+    //log_prob_nb_2_prev_2 = log_prob_nb_2_prev;
 
     log_prob_b_prev = log_prob_b_cur;
     log_prob_nb_prev = log_prob_nb_cur;

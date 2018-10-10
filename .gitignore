@@ -1,4 +1,5 @@
 build
+third_party
 _ext
 ctc_decode
 *.pyc

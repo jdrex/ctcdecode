@@ -44,8 +44,10 @@ public:
 
   float log_prob_b_prev;
   float log_prob_nb_prev;
+  float log_prob_nb_2_prev;
   float log_prob_b_cur;
   float log_prob_nb_cur;
+  float log_prob_nb_2_cur;
   float score;
   float approx_ctc;
   int character;
