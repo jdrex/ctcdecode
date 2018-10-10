@@ -5,6 +5,7 @@
 #include "TH.h"
 #include "scorer.h"
 #include "ctc_beam_search_decoder.h"
+#include "bigram_ctc_beam_search_decoder.h"
 #include "utf8.h"
 
 int utf8_to_utf8_char_vec(const char* labels, std::vector<std::string>& new_vocab) {
@@ -31,6 +32,7 @@ int beam_decode(THFloatTensor *th_probs,
                 double cutoff_prob,
                 size_t cutoff_top_n,
                 size_t blank_id,
+		bool bigram,
                 void *scorer,
                 THIntTensor *th_output,
                 THIntTensor *th_timesteps,
@@ -61,9 +63,10 @@ int beam_decode(THFloatTensor *th_probs,
         inputs.push_back(temp);
     }
 
-    std::vector<std::vector<std::pair<double, Output>>> batch_results =
-    ctc_beam_search_decoder_batch(inputs, new_vocab, beam_size, num_processes, cutoff_prob, cutoff_top_n, blank_id, ext_scorer);
-
+    std::vector<std::vector<std::pair<double, Output>>> batch_results = get_batch_results(bigram, inputs, new_vocab, beam_size, 
+											  num_processes, cutoff_prob, 
+											  cutoff_top_n, blank_id, ext_scorer)
+ 
     for (int b = 0; b < batch_results.size(); ++b){
         std::vector<std::pair<double, Output>> results = batch_results[b];
         for (int p = 0; p < results.size();++p){
@@ -82,6 +85,16 @@ int beam_decode(THFloatTensor *th_probs,
     return 1;
 }
 
+std::vector<std::vector<std::pair<double, Output>>> get_batch_results(bigram, inputs, new_vocab, beam_size, num_processes, cutoff_prob, 
+								      cutoff_top_n, blank_id, ext_scorer){
+   if (bigram) {
+     return bigram_ctc_beam_search_decoder_batch(inputs, new_vocab, beam_size, num_processes, cutoff_prob, cutoff_top_n, blank_id, ext_scorer);
+   } 
+   else {
+     return ctc_beam_search_decoder_batch(inputs, new_vocab, beam_size, num_processes, cutoff_prob, cutoff_top_n, blank_id, ext_scorer);
+   }
+
+}
 
 extern "C"
 {
@@ -95,13 +108,14 @@ extern "C"
                                double cutoff_prob,
                                size_t cutoff_top_n,
                                size_t blank_id,
+			       bool bigram,
                                THIntTensor *th_output,
                                THIntTensor *th_timesteps,
                                THFloatTensor *th_scores,
                                THIntTensor *th_out_length){
 
             return beam_decode(th_probs, th_seq_lens, labels, vocab_size, beam_size, num_processes,
-                        cutoff_prob, cutoff_top_n, blank_id,NULL, th_output, th_timesteps, th_scores, th_out_length);
+			       cutoff_prob, cutoff_top_n, blank_id, bigram, NULL, th_output, th_timesteps, th_scores, th_out_length);
         }
 
         int paddle_beam_decode_lm(THFloatTensor *th_probs,
@@ -113,6 +127,7 @@ extern "C"
                                   double cutoff_prob,
                                   size_t cutoff_top_n,
                                   size_t blank_id,
+				  bool bigram,
                                   void *scorer,
                                   THIntTensor *th_output,
                                   THIntTensor *th_timesteps,
@@ -120,7 +135,7 @@ extern "C"
                                   THIntTensor *th_out_length){
 
             return beam_decode(th_probs, th_seq_lens, labels, vocab_size, beam_size, num_processes,
-                        cutoff_prob, cutoff_top_n, blank_id,scorer, th_output, th_timesteps, th_scores, th_out_length);
+			       cutoff_prob, cutoff_top_n, blank_id, bigram, scorer, th_output, th_timesteps, th_scores, th_out_length);
         }
 
 
