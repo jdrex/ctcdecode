@@ -53,6 +53,31 @@ class TestDecoders(unittest.TestCase):
         self.greedy_result = ["ac'bdc", "b'da"]
         self.beam_search_result = ['acdc', "b'a"]
 
+        self.bigram_vocab_list = ['_', ' ', 'a', 'b']
+        # probs vocab: _, ' ', a, b, aa, ab, ba, bb
+        self.bigram_probs_seq1 = [[ # greedy = aa + b
+            0.05, 0.05, 0.25, 0.05, 0.3, 0.2, 0.05, 0.05
+        ], [
+            0.05, 0.05, 0.25, 0.05, 0.3, 0.2, 0.05, 0.05
+        ], [
+            0.05, 0.05, 0.05, 0.3, 0.05, 0.2, 0.05, 0.25
+        ], [
+            0.05, 0.05, 0.05, 0.3, 0.05, 0.2, 0.05, 0.25
+        ], [
+            0.05, 0.05, 0.05, 0.3, 0.05, 0.2, 0.05, 0.25
+        ]]
+        self.bigram_probs_seq2 = [[
+            0.08034842, 0.22671944, 0.05799633, 0.36814645, 0.11307441,
+            0.04468023, 0.10903471
+        ], [
+            0.09742457, 0.12959763, 0.09435383, 0.21889204, 0.15113123,
+            0.10219457, 0.20640612
+        ]]
+        self.bigram_greedy_result = ["aab", "ab"]
+        self.bigram_beam_search_result = ['aab', "ab"]
+        
+        self.subword_vocab_list = ['_', ' ', 'a', 'b', 'aa', 'ab', 'ba', 'bb']
+
     def convert_to_string(self, tokens, vocab, seq_len):
         return ''.join([vocab[x] for x in tokens[0:seq_len]])
 
@@ -82,6 +107,34 @@ class TestDecoders(unittest.TestCase):
         self.assertEqual(output_str1, self.beam_search_result[0])
         self.assertEqual(output_str2, self.beam_search_result[1])
 
+    def test_bigram_beam_search_decoder_batch(self):
+        probs_seq = torch.FloatTensor([self.bigram_probs_seq1]) #, self.bigram_probs_seq2])
+        decoder = ctcdecode.CTCBeamDecoder(self.bigram_vocab_list, beam_width=5,
+                                           bigram=True, num_processes=24)
+        beam_results, beam_scores, timesteps, out_seq_len = decoder.decode(probs_seq)
+        output_str1 = self.convert_to_string(beam_results[0][0], self.bigram_vocab_list, out_seq_len[0][0])
+        #output_str2 = self.convert_to_string(beam_results[1][0], self.vocab_list, out_seq_len[1][0])
+        print(beam_results)
+        print(beam_scores)
+        print(timesteps)
+        print(out_seq_len)
+        print(output_str1)
+        self.assertEqual(output_str1, self.bigram_beam_search_result[0])
+        #self.assertEqual(output_str2, self.bigram_beam_search_result[1])
+
+    def test_subword_beam_search_decoder_batch(self):
+        probs_seq = torch.FloatTensor([self.bigram_probs_seq1]) #, self.bigram_probs_seq2])
+        decoder = ctcdecode.CTCBeamDecoder(self.subword_vocab_list, beam_width=5,
+                                           subword=True, num_processes=24)
+        beam_results, beam_scores, timesteps, out_seq_len = decoder.decode(probs_seq)
+        output_str1 = self.convert_to_string(beam_results[0][0], self.subword_vocab_list, out_seq_len[0][0])
+        #output_str2 = self.convert_to_string(beam_results[1][0], self.vocab_list, out_seq_len[1][0])
+        print(beam_results)
+        print(beam_scores)
+        print(timesteps)
+        print(out_seq_len)
+        print(output_str1)
+        self.assertEqual(output_str1, self.bigram_beam_search_result[0])
 
 if __name__ == '__main__':
     unittest.main()

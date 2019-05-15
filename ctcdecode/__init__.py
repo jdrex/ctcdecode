@@ -1,21 +1,27 @@
 from ._ext import ctc_decode
 import torch
-
+import cffi
 
 class CTCBeamDecoder(object):
     def __init__(self, labels, model_path=None, alpha=0, beta=0, cutoff_top_n=40, cutoff_prob=1.0, beam_width=100,
-                 num_processes=4, blank_id=0, bigram=False):
+                 num_processes=4, blank_id=0, max_overlap=False, bigram=False, subword=False):
+
+        ffi = cffi.FFI()
+        
         self.cutoff_top_n = cutoff_top_n
         self._beam_width = beam_width
         self._scorer = None
         self._num_processes = num_processes
-        self._labels = ''.join(labels).encode()
+        self._labels = [ffi.new("char[]", l.encode()) for l in labels]
+        self._label_lens = [len(l) for l in labels]
         self._num_labels = len(labels)
         self._blank_id = blank_id
+        self._max_overlap = max_overlap
         self._bigram = bigram
+        self._subword = subword
 
         if model_path:
-            self._scorer = ctc_decode.paddle_get_scorer(alpha, beta, model_path.encode(), self._labels,
+            self._scorer = ctc_decode.paddle_get_scorer(alpha, beta, model_path.encode(), self._labels, self._label_lens,
                                                         self._num_labels)
         self._cutoff_prob = cutoff_prob
 
@@ -23,21 +29,26 @@ class CTCBeamDecoder(object):
         # We expect batch x seq x label_size
         probs = probs.cpu().float()
         batch_size, max_seq_len = probs.size(0), probs.size(1)
+        
+        #if self._bigram or self._subword:
+        #    max_seq_len = probs.size(1)
         if seq_lens is None:
             seq_lens = torch.IntTensor(batch_size).fill_(max_seq_len)
         else:
             seq_lens = seq_lens.cpu().int()
+            
         output = torch.IntTensor(batch_size, self._beam_width, max_seq_len).cpu().int()
         timesteps = torch.IntTensor(batch_size, self._beam_width, max_seq_len).cpu().int()
         scores = torch.FloatTensor(batch_size, self._beam_width).cpu().float()
         out_seq_len = torch.IntTensor(batch_size, self._beam_width).cpu().int()
+        
         if self._scorer:
-            ctc_decode.paddle_beam_decode_lm(probs, seq_lens, self._labels, self._num_labels, self._beam_width,
-                                             self._num_processes, self._cutoff_prob, self.cutoff_top_n, self._blank_id,
-                                             self._bigram, self._scorer, output, timesteps, scores, out_seq_len)
+            ctc_decode.paddle_beam_decode_lm(probs, seq_lens, self._labels, self._label_lens, self._num_labels, self._beam_width,
+                                             self._num_processes, self._cutoff_prob, self.cutoff_top_n, self._blank_id, self._max_overlap, 
+                                             self._bigram, self._subword, self._scorer, output, timesteps, scores, out_seq_len)
         else:
-            ctc_decode.paddle_beam_decode(probs, seq_lens, self._labels, self._num_labels, self._beam_width, self._num_processes,
-                                          self._cutoff_prob, self.cutoff_top_n, self._blank_id, self._bigram, output, timesteps,
+            ctc_decode.paddle_beam_decode(probs, seq_lens, self._labels, self._label_lens, self._num_labels, self._beam_width, self._num_processes,
+                                          self._cutoff_prob, self.cutoff_top_n, self._blank_id, self._max_overlap, self._bigram, self._subword, output, timesteps,
                                           scores, out_seq_len)
 
         return output, scores, timesteps, out_seq_len

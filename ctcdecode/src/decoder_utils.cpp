@@ -42,6 +42,7 @@ std::vector<std::pair<double, Output>> get_beam_search_result(
     const std::vector<PathTrie *> &prefixes,
     size_t beam_size) {
   // allow for the post processing
+
   std::vector<PathTrie *> space_prefixes;
   if (space_prefixes.empty()) {
     for (size_t i = 0; i < beam_size && i < prefixes.size(); ++i) {
@@ -52,6 +53,7 @@ std::vector<std::pair<double, Output>> get_beam_search_result(
   std::sort(space_prefixes.begin(), space_prefixes.end(), prefix_compare);
   std::vector<std::pair<double, Output>> output_vecs;
   for (size_t i = 0; i < beam_size && i < space_prefixes.size(); ++i) {
+
     std::vector<int> output;
     std::vector<int> timesteps;
     space_prefixes[i]->get_path_vec(output, timesteps);

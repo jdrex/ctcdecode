@@ -27,6 +27,7 @@ std::vector<std::pair<double, Output>> bigram_ctc_beam_search_decoder(
   size_t num_time_steps = probs_seq.size();
   for (size_t i = 0; i < num_time_steps; ++i) {
     // JD: this won't be true - vocabulary = blank, space, [chars] - seq = vocab.size() + (vocab.size()-2)^2
+    std::cout << i << " " << probs_seq[i].size() << " " << vocabulary.size() << std::endl;
     VALID_CHECK_EQ(probs_seq[i].size(),
                    vocabulary.size() + (vocabulary.size()-2)*(vocabulary.size()-2),
                    "The shape of probs_seq does not match with "
@@ -46,6 +47,8 @@ std::vector<std::pair<double, Output>> bigram_ctc_beam_search_decoder(
   size_t space_id = 1;
   size_t nChars = vocabulary.size() - 2;
 
+  std::cout << nChars << std::endl;
+
   // original:
   // assign space id
   //auto it = std::find(vocabulary.begin(), vocabulary.end(), " ");
@@ -61,6 +64,8 @@ std::vector<std::pair<double, Output>> bigram_ctc_beam_search_decoder(
   std::vector<BigramPathTrie *> prefixes;
   prefixes.push_back(&root);
 
+  std::cout << "created root + prefixes" << std::endl;
+
   //if (ext_scorer != nullptr && !ext_scorer->is_character_based()) {
   //  auto fst_dict = static_cast<fst::StdVectorFst *>(ext_scorer->dictionary);
   //  fst::StdVectorFst *dict_ptr = fst_dict->Copy(true);
@@ -75,6 +80,8 @@ std::vector<std::pair<double, Output>> bigram_ctc_beam_search_decoder(
 
     float min_cutoff = -NUM_FLT_INF;
     bool full_beam = false;
+    std::cout << "time step: " << time_step << std::endl;
+
     //if (ext_scorer != nullptr) {
     //  size_t num_prefixes = std::min(prefixes.size(), beam_size);
     //  std::sort(
@@ -88,20 +95,28 @@ std::vector<std::pair<double, Output>> bigram_ctc_beam_search_decoder(
         get_pruned_log_probs(prob, cutoff_prob, cutoff_top_n);
     // loop over chars
     for (size_t index = 0; index < log_prob_idx.size(); index++) {
+      
       auto c = log_prob_idx[index].first;
       auto log_prob_c = log_prob_idx[index].second;
+
+      std::cout << index << ", " << c << ", " << log_prob_c << std::endl;
+
       int c_1 = -1;
       int c_2 = -1;
 	
       // JD: figure out if this is a single character or a bigram (if index is > len(vocab) + 2
       bool is_bigram = (c >= vocabulary.size());
       if (is_bigram) {
-	int c_1 = (c - vocabulary.size()) / nChars;
-	int c_2 = (c - vocabulary.size()) % nChars;  
+	c_1 = (c - vocabulary.size()) / nChars + 2;
+	c_2 = (c - vocabulary.size()) % nChars + 2;  
       }
+
+      std::cout << c_1 << ", " << c_2 << std::endl;
 
       for (size_t i = 0; i < prefixes.size() && i < beam_size; ++i) {
         auto prefix = prefixes[i];
+	std::cout << "prefix: " << i << std::endl;
+
         if (full_beam && log_prob_c + prefix->score < min_cutoff) {
           break;
         }
@@ -240,13 +255,18 @@ std::vector<std::pair<double, Output>> bigram_ctc_beam_search_decoder(
   //  }
   //}
 
+  std::cout << "end of time loop" << std::endl;
   size_t num_prefixes = std::min(prefixes.size(), beam_size);
+  std::cout << num_prefixes << std::endl;
   std::sort(prefixes.begin(), prefixes.begin() + num_prefixes, bigram_prefix_compare);
+  std::cout << "prefixes sorted" << std::endl;
 
   // compute aproximate ctc score as the return score, without affecting the
   // return order of decoding result. To delete when decoder gets stable.
   for (size_t i = 0; i < beam_size && i < prefixes.size(); ++i) {
+    std::cout << i << std::endl;
     double approx_ctc = prefixes[i]->score;
+    std::cout << approx_ctc << std::endl;
     //if (ext_scorer != nullptr) {
     //  std::vector<int> output;
     //  std::vector<int> timesteps;
@@ -259,6 +279,7 @@ std::vector<std::pair<double, Output>> bigram_ctc_beam_search_decoder(
     //  approx_ctc -= (ext_scorer->get_sent_log_prob(words)) * ext_scorer->alpha;
     //}
     prefixes[i]->approx_ctc = approx_ctc;
+    std::cout << "done" << std::endl;
   }
 
   return get_beam_search_result(prefixes, beam_size);

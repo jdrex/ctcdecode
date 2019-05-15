@@ -8,6 +8,8 @@ std::vector<std::pair<double, Output>> get_beam_search_result(
     const std::vector<BigramPathTrie *> &prefixes,
     size_t beam_size) {
   // allow for the post processing
+  std::cout << "get beam search result" << std::endl;
+
   std::vector<BigramPathTrie *> space_prefixes;
   if (space_prefixes.empty()) {
     for (size_t i = 0; i < beam_size && i < prefixes.size(); ++i) {
@@ -15,12 +17,16 @@ std::vector<std::pair<double, Output>> get_beam_search_result(
     }
   }
 
+  std::cout << "get beam search result 2" << std::endl;
   std::sort(space_prefixes.begin(), space_prefixes.end(), bigram_prefix_compare);
+  std::cout << "get beam search result 3" << std::endl;
   std::vector<std::pair<double, Output>> output_vecs;
   for (size_t i = 0; i < beam_size && i < space_prefixes.size(); ++i) {
+    std::cout << i << std::endl;
     std::vector<int> output;
     std::vector<int> timesteps;
     space_prefixes[i]->get_path_vec(output, timesteps);
+    std::cout << "after get_path_vec" << std::endl;
     Output outputs;
     outputs.tokens = output;
     outputs.timesteps = timesteps;
